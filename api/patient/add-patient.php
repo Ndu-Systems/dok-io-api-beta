@@ -6,6 +6,7 @@ include_once '../../models/Practice.php';
 
 $data = json_decode(file_get_contents("php://input"));
 
+$Title  = $data->Title;
 $FirstName  = $data->FirstName; 
 $Surname  = $data->Surname;
 $IdNumber  = $data->IdNumber;
@@ -13,13 +14,7 @@ $DOB  = $data->DOB;
 $CreateUserId  = $data->CreateUserId;
 $ModifyUserId  = $data->CreateUserId; 
 $StatusId  = $data->StatusId; 
-$PracticeId = $data->PracticeId;
-
-//check for email
-// if($Email == ''){
-//     $Email = time().'@doc-io.net';
-// }
-
+$PracticeId = $data->PracticeId; 
 
 
 //connect to db
@@ -32,6 +27,7 @@ $user = new Patient($db);
 $practise = new Practice($db);
 
 $result = $user->add( 
+    $Title ,
     $FirstName,
     $Surname,
     $IdNumber,

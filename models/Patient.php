@@ -19,54 +19,40 @@ class Patient
     }
 
     //Get a user
-    public function read($DocId,$statusId)
+    public function read($DocId, $statusId)
     {
-
         $query = "
         select 
-        patient.PatientId,
-        patient.Title, 
-        patient.DOB,
-        patient.StatusId, 
-        patient.Province, 
-        patient.FirstName, 
-        patient.Surname,
-        patient.IdNumber,
-        patient.Email,
-        patient.Cellphone,
-        patient.Gender,
-        patient.CreateDate,
-        patient.AddressLine1,
-        patient.City ,
-        patient.PostCode ,
-        medicalaid.MedicalaidId, 
-        medicalaid.MedicalaidName, 
-        medicalaid.MedicalaidType, 
-        medicalaid.MemberShipNumber, 
-        medicalaid.PrimaryMember, 
-        medicalaid.PrimaryMemberId,
-
-        contactperson.ContactPersonId,
-        contactperson.Name as ContactName,
-        contactperson.CellNumber  as ContactCell,
-        contactperson.Relationship  as ContactRelationship,
-
-        count(appointment.AppointmentId) as NumAppointments ,      	
-        practice.Name as PracticeName,
-        user.Email as DoctorEmail      
-
-        from patient 
-        left join  medicalaid on medicalaid.PatientId = patient.PatientId   
-        left join appointment on appointment.PatientId = patient.PatientId        
-        left join contactperson on contactperson.PatientId = patient.PatientId 
-        LEFT JOIN patient_doctor_practice on patient_doctor_practice.PatientId = patient.PatientId
-        LEFT JOIN user on user.UserId = patient_doctor_practice.DoctorId
-        LEFT JOIN practice on practice.PracticeId = patient_doctor_practice.PracticeId      
-        where patient.StatusId = ?
-        and user.UserId = ?              	
-		GROUP by patient.PatientId
+        p.patientid,
+        p.title, 
+        p.dob,
+        p.statusid, 
+        p.province, 
+        p.firstname, 
+        p.surname,
+        p.idnumber,
+        p.email,
+        p.cellphone,
+        p.gender,
+        p.createdate,
+        p.addressline1,
+        p.city ,
+        p.postcode ,
+        med.MedicalaidId, 
+        med.MedicalaidName, 
+        med.MedicalaidType, 
+        med.MemberShipNumber, 
+        med.PrimaryMember, 
+        med.PrimaryMemberId
+        from patient AS p
+             LEFT OUTER JOIN medicalaid AS med on med.PatientId = p.PatientId
+             LEFT OUTER JOIN patient_doctor_practice AS pdp on pdp.PatientId = p.PatientId
+             LEFT OUTER JOIN user AS u on u.UserId = pdp.DoctorId
+             LEFT OUTER JOIN practice AS pc on pc.PracticeId = pdp.PracticeId
+       WHERE p.StatusId = ?
+       AND u.UserId = ?
+       ORDER BY CreateDate Desc        
         ";
-
         //Prepare statement
         $stmt = $this->conn->prepare($query);
 
@@ -74,15 +60,31 @@ class Patient
         $stmt->execute(array($statusId, $DocId));
 
         return $stmt;
-
     }
- 
+
     public function getById($PatientId)
     {
 
         $query = "
-        select patient.PatientId, patient.FirstName, patient.DOB, patient.Surname,patient.IdNumber,patient.Email,patient.Cellphone,patient.Gender,patient.CreateDate,patient.AddressLine1,patient.City ,patient.PostCode ,
-        medicalaid.MedicalaidId, medicalaid.MedicalaidName, medicalaid.MedicalaidType, medicalaid.MemberShipNumber, medicalaid.PrimaryMember, medicalaid.PrimaryMemberId,
+        select patient.PatientId, 
+        patient.Title, 
+        patient.FirstName, 
+        patient.DOB, 
+        patient.Surname,
+        patient.IdNumber,
+        patient.Email,
+        patient.Cellphone,
+        patient.Gender,
+        patient.CreateDate,
+        patient.AddressLine1,
+        patient.City,
+        patient.PostCode,
+        medicalaid.MedicalaidId, 
+        medicalaid.MedicalaidName, 
+        medicalaid.MedicalaidType, 
+        medicalaid.MemberShipNumber, 
+        medicalaid.PrimaryMember, 
+        medicalaid.PrimaryMemberId,
         count(appointment.AppointmentId) as NumAppointments,
 
         contactperson.ContactPersonId,
@@ -105,9 +107,8 @@ class Patient
         $stmt->execute(array($PatientId));
 
         return $stmt;
-
     }
-    
+
 
     public function FunctionName(Type $var = null)
     {
@@ -127,31 +128,30 @@ class Patient
         $stmt = $this->conn->prepare($query);
         $stmt->execute(array($email));
 
-        if($stmt->rowCount()){
-           return $patient = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($stmt->rowCount()) {
+            return $patient = $stmt->fetch(PDO::FETCH_ASSOC);
         }
-
     }
 
     //Get user by Id number
     public function getByIdNumber($IdNumber)
     {
 
-        $query = "SELECT * FROM patient WHERE IdNumber = ?";    
+        $query = "SELECT * FROM patient WHERE IdNumber = ?";
 
         $stmt = $this->conn->prepare($query);
         $stmt->execute(array($IdNumber));
-        if($stmt->rowCount()){
+        if ($stmt->rowCount()) {
             return $patient = $stmt->fetch(PDO::FETCH_ASSOC);
-         }
-
+        }
     }
-      //Add user 
-    public function add(    
+    //Add user 
+    public function add(
+        $Title,
         $FirstName,
         $Surname,
         $IdNumber,
-        $DOB,        
+        $DOB,
         $CreateUserId,
         $ModifyUserId,
         $StatusId
@@ -159,9 +159,10 @@ class Patient
         if ($this->getByIdNumber($IdNumber) > 0) {
             return "User with IdNumber number (" . $IdNumber . ") already exists";
         }
-        
+
         $query = "INSERT INTO patient (     
-                                        PatientId                                                                           
+                                        PatientId
+                                        ,Title                                                                           
                                         ,FirstName
                                         ,Surname
                                         ,IdNumber
@@ -169,25 +170,25 @@ class Patient
                                         ,CreateUserId
                                         ,ModifyUserId
                                         ,StatusId)
-                    VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?)           
+                    VALUES (UUID(),?,?, ?, ?, ?, ?, ?, ?)           
                    ";
         try {
             $stmt = $this->conn->prepare($query);
-            if($stmt->execute(array(                
+            if ($stmt->execute(array(
+                $Title,
                 $FirstName,
                 $Surname,
                 $IdNumber,
-                $DOB,               
+                $DOB,
                 $CreateUserId,
                 $ModifyUserId,
                 $StatusId
-            ))){
+            ))) {
                 return $this->getByIdNumber($IdNumber);
             }
         } catch (Exception $e) {
             return $e;
         }
-
     }
 
     //Add Update User 
@@ -232,7 +233,7 @@ class Patient
                    ";
         try {
             $stmt = $this->conn->prepare($query);
-            if($stmt->execute(array(
+            if ($stmt->execute(array(
                 $Title,
                 $FirstName,
                 $Surname,
@@ -249,23 +250,21 @@ class Patient
                 $ModifyUserId,
                 $StatusId,
                 $PatientId
-            ))){
-                return $PatientId;
+            ))) {
+                return $this->getByIdNumber($IdNumber);
             }
         } catch (Exception $e) {
             return $e;
         }
-
     }
 
-   public function AddPatientDoctorPractice(
-    $UserId,
-    $patientId,
-    $practiseId,
-    $statusId
-   )
-   {
-       $query = "INSERT INTO patient_doctor_practice(
+    public function AddPatientDoctorPractice(
+        $UserId,
+        $patientId,
+        $practiseId,
+        $statusId
+    ) {
+        $query = "INSERT INTO patient_doctor_practice(
                     Id, 
                     PatientId, 
                     DoctorId, 
@@ -279,24 +278,18 @@ class Patient
         try {
             $stmt = $this->conn->prepare($query);
 
-            if($stmt->execute(array(             
+            if ($stmt->execute(array(
                 $patientId,
                 $UserId,
                 $practiseId,
                 $UserId,
                 $UserId,
                 $statusId
-            ))){
+            ))) {
                 return 1;
             }
         } catch (Exception $e) {
             return $e;
         }
-    
-   }
-
-
+    }
 }
-
-
-
